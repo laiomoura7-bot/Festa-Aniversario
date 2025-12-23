@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Markdown Parser para o retorno da IA -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
         
@@ -28,7 +30,6 @@
         }
         .animate-pulse-custom { animation: pulse-custom 2.5s ease-in-out infinite; }
 
-        /* Correção para o corte do itálico no degradê */
         .gradient-text {
             -webkit-background-clip: text;
             background-clip: text;
@@ -39,6 +40,17 @@
             filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
             line-height: 1.2;
         }
+
+        /* Animação de brilho para o botão de IA */
+        @keyframes shine-btn {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .btn-ai {
+            background-size: 200% 200%;
+            animation: shine-btn 3s ease infinite;
+        }
     </style>
 </head>
 <body class="bg-[#0a192f] text-slate-300 min-h-screen flex items-center justify-center p-4 overflow-x-hidden relative">
@@ -48,13 +60,6 @@
         <div class="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] bg-blue-600/5 blur-[130px] rounded-full"></div>
         <div class="absolute bottom-[-15%] right-[-10%] w-[60%] h-[60%] bg-red-600/5 blur-[130px] rounded-full"></div>
         <div class="fixed inset-0 opacity-[0.06] bg-blueprint"></div>
-    </div>
-
-    <!-- Marca d'água Gota 3D -->
-    <div class="fixed inset-0 pointer-events-none flex items-center justify-center z-0 opacity-[0.03]">
-        <svg width="600" height="600" viewBox="0 0 200 200" class="transform scale-150 rotate-[-15deg]">
-            <path d="M100,20 C100,20 45,85 45,125 A55,55 0 1,0 155,125 C155,85 100,20 100,20 Z" fill="#22d3ee" />
-        </svg>
     </div>
 
     <!-- Container -->
@@ -124,10 +129,21 @@
             </div>
 
             <!-- Campo Nome -->
-            <div class="mb-6 relative">
+            <div class="mb-4 relative">
                  <i data-lucide="user-plus" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50"></i>
-                 <!-- Mudança aqui: 'capitalize' para o teclado sugerir maiúsculas -->
                  <input type="text" id="guest-name" placeholder="NOME COMPLETO PARA A LISTA" class="w-full bg-[#0a192f]/80 border border-cyan-500/20 rounded-xl py-4 pl-12 pr-4 text-xs font-black text-white placeholder-cyan-500/30 focus:border-cyan-400 focus:outline-none capitalize transition-all shadow-inner">
+            </div>
+
+            <!-- Área da IA Gemini -->
+            <div class="mb-6 p-4 rounded-xl border border-dashed border-cyan-500/30 bg-[#0a192f]/40">
+                <p class="text-[10px] text-cyan-400/80 mb-2 font-mono uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> Mensagem Especial
+                </p>
+                <textarea id="ai-message" placeholder="Sua mensagem para o Laio aparecerá aqui..." class="w-full bg-[#0d1f3a] border border-cyan-500/10 rounded-lg p-3 text-xs text-white placeholder-slate-600 focus:border-cyan-400/50 focus:outline-none h-20 mb-2 resize-none"></textarea>
+                
+                <button id="btn-generate-ai" class="btn-ai w-full bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white font-bold py-2 rounded-lg text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/20 transition-all active:scale-95">
+                    <i data-lucide="wand-2" class="w-3 h-3"></i> Gerar Mensagem com IA
+                </button>
             </div>
 
             <!-- Botões -->
@@ -168,37 +184,85 @@
         const seuNumero = "5565984297729";
         const urlPlanilha = "https://api.sheetbest.com/sheets/f93c666e-7f4d-429e-aa2f-f2ce838fb79d";
         const endereco = "Avenida Nigéria, 333, Jardim Aclimação, Cuiabá - MT";
+        
+        // ⚠️ IMPORTANTE: Para publicar, você precisaria colocar sua API Key aqui.
+        // No ambiente de teste, ela é injetada automaticamente.
+        const apiKey = ""; 
 
         window.onload = () => {
             document.getElementById('invite-container').classList.remove('opacity-0', 'translate-y-10');
         };
 
         const getCalendarUrl = () => {
-            const titulo = encodeURIComponent("30 Anos do Laio 🎂");
+            const titulo = encodeURIComponent("30 Anos do Laio \uD83C\uDF82");
             const details = encodeURIComponent("Procedimento padrão: Comemoração e Alegria! #BBMP");
             const local = encodeURIComponent(endereco);
             return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=20251228T160000Z/20251229T020000Z&details=${details}&location=${local}`;
         };
 
-        // Função para formatar nome (Primeira letra maiúscula)
         const toTitleCase = (str) => {
             return str.toLowerCase().split(' ').map(word => {
                 return word.charAt(0).toUpperCase() + word.slice(1);
             }).join(' ');
         };
 
+        // --- LÓGICA DA IA GEMINI ---
+        document.getElementById('btn-generate-ai').onclick = async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            const output = document.getElementById('ai-message');
+            
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> CRIANDO MÁGICA...';
+            lucide.createIcons();
+            btn.disabled = true;
+
+            const prompt = "Escreva uma mensagem de aniversário muito curta (max 15 palavras), engraçada e animada para WhatsApp para um amigo chamado Laio que está fazendo 30 anos. Contexto: Ele é engenheiro, torcedor do Bahia (BBMP). Use 2 emojis.";
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                if (!response.ok) throw new Error('Falha na IA');
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                
+                // Digitação efeito máquina de escrever
+                output.value = "";
+                let i = 0;
+                const typeWriter = setInterval(() => {
+                    if (i < text.length) {
+                        output.value += text.charAt(i);
+                        i++;
+                    } else {
+                        clearInterval(typeWriter);
+                    }
+                }, 30);
+
+            } catch (error) {
+                console.error(error);
+                output.value = "Parabéns Laio! 30 anos de muita engenharia e BBMP! 🦁🇮🇹";
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        };
+
+        // --- CONFIRMAÇÃO ---
         document.getElementById('btn-confirm').onclick = async function() {
             let nomeInput = document.getElementById('guest-name').value.trim();
+            const aiMessage = document.getElementById('ai-message').value.trim();
             
             if (!nomeInput) {
                 alert("Preciso do seu nome completo para lista de convidados da portaria. Por favor, preencha o campo.");
                 return;
             }
 
-            // Formata o nome automaticamente
             const nomeFormatado = toTitleCase(nomeInput);
-            
-            // Atualiza o input visualmente para o usuário ver
             document.getElementById('guest-name').value = nomeFormatado;
 
             const originalText = this.innerHTML;
@@ -206,22 +270,20 @@
             this.disabled = true;
 
             try {
-                // 1. Verifica duplicatas (Baixa a lista atual)
+                // Verifica duplicatas
                 const checkResponse = await fetch(urlPlanilha);
                 const currentList = await checkResponse.json();
+                const nomeExiste = currentList.some(entry => entry.nome && entry.nome.toLowerCase() === nomeFormatado.toLowerCase());
+
+                let finalMessage = `Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve \uD83D\uDE09\n\n(Nome na lista: ${nomeFormatado})`;
                 
-                // Compara nomes (ignorando maiúsculas/minúsculas)
-                const nomeExiste = currentList.some(entry => 
-                    entry.nome && entry.nome.toLowerCase() === nomeFormatado.toLowerCase()
-                );
+                if (aiMessage) {
+                    finalMessage += `\n\nMsg Especial: ${aiMessage}`;
+                }
 
                 if (nomeExiste) {
-                    alert(`Opa! O nome "${nomeFormatado}" já está confirmado na lista! 😉\n\nSe precisar de algo, me chame no WhatsApp.`);
-                    
-                    // Se já existe, apenas redireciona para o WhatsApp sem salvar de novo
-                    const textoMsg = encodeURIComponent(`Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve 😉\n\n(Nome na lista: ${nomeFormatado})`);
-                    setTimeout(() => { window.location.href = `https://wa.me/${seuNumero}?text=${textoMsg}`; }, 500);
-                    
+                    alert(`Opa! O nome "${nomeFormatado}" já está confirmado na lista! \uD83D\uDE09\n\nVamos para o WhatsApp.`);
+                    setTimeout(() => { window.location.href = `https://wa.me/${seuNumero}?text=${encodeURIComponent(finalMessage)}`; }, 500);
                     this.innerHTML = originalText;
                     this.disabled = false;
                     return;
@@ -229,22 +291,17 @@
 
                 this.innerHTML = "SALVANDO...";
 
-                // 2. Grava na Planilha (Se não for duplicado)
                 await fetch(urlPlanilha, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nome: nomeFormatado, data: new Date().toLocaleString("pt-BR") }),
+                    body: JSON.stringify({ nome: nomeFormatado, data: new Date().toLocaleString("pt-BR"), mensagem: aiMessage }),
                     keepalive: true
                 });
 
-                // 3. Tenta abrir a Agenda
                 window.open(getCalendarUrl(), '_blank');
 
-                // 4. Redireciona para o WhatsApp
-                const textoMsg = encodeURIComponent(`Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve 😉\n\n(Nome na lista: ${nomeFormatado})`);
-                
                 setTimeout(() => {
-                    window.location.href = `https://wa.me/${seuNumero}?text=${textoMsg}`;
+                    window.location.href = `https://wa.me/${seuNumero}?text=${encodeURIComponent(finalMessage)}`;
                     setTimeout(() => {
                         this.innerHTML = originalText;
                         this.disabled = false;
@@ -253,7 +310,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("Erro ao conectar com a lista. Verifique sua internet e tente novamente.");
+                alert("Erro ao conectar com a lista. Verifique sua internet.");
                 this.innerHTML = originalText;
                 this.disabled = false;
             }
