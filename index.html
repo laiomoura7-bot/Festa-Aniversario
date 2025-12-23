@@ -166,7 +166,7 @@
         };
 
         const getCalendarUrl = () => {
-            const titulo = encodeURIComponent("30 Anos do Laio 🎂");
+            const titulo = encodeURIComponent("30 Anos de Laio 🎂");
             const detalhes = encodeURIComponent("Procedimento padrão: Comemoração e Alegria! #BBMP");
             const local = encodeURIComponent(endereco);
             return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=20251228T160000Z/20251229T020000Z&details=${detalhes}&location=${local}`;
@@ -195,7 +195,7 @@
             }).catch(e => console.log("Erro silencioso ao salvar planilha", e));
 
             // 3. Prepara mensagem do WhatsApp
-            const textoMsg = encodeURIComponent(`Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve 😉\n\n(Nome na lista: ${nome})`);
+            const textoMsg = encodeURIComponent(`Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve 🎉\n\n`);
             
             // 4. Redireciona para o WhatsApp após 1.5 segundos
             setTimeout(() => {
