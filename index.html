@@ -181,7 +181,7 @@
         document.getElementById('btn-confirm').onclick = async function() {
             const nome = document.getElementById('guest-name').value.trim();
             if (!nome) {
-                alert("Laio precisa do seu nome para a portaria. Por favor, preencha o campo!");
+                alert("Preciso do seu nome para lista de presença da portaria. Por favor, preencha o campo!");
                 return;
             }
 
@@ -200,7 +200,7 @@
                 alert("✅ Nome salvo na lista de convidados!\n\nAgora você será redirecionado para o WhatsApp para confirmar com o Laio.");
 
                 // 3. Redireciona a página atual para o WhatsApp (Sem abrir nova aba)
-                const textoMsg = encodeURIComponent(`Fala, Laio ! Confirmado para os 3.0 no dia 28/12. Te vejo em breve 😉\n\nNome para a portaria: ${nome}`);
+                const textoMsg = encodeURIComponent(`Fala, Laio ! Confirmado para os 3.0 no dia 28/12. Te vejo em breve 😉`);
                 window.location.href = `https://wa.me/${seuNumero}?text=${textoMsg}`;
 
             } catch (err) {
