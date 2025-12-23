@@ -28,23 +28,17 @@
         }
         .animate-pulse-custom { animation: pulse-custom 2.5s ease-in-out infinite; }
 
-        /* CORREÇÃO DEFINITIVA DO CORTE NO 'O' */
-        .gradient-fill {
-            background: linear-gradient(to right, #22d3ee, #3b82f6, #22d3ee);
-            background-size: 200% auto;
+        /* Correção para o corte do itálico no degradê */
+        .gradient-text {
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 5s linear infinite;
-            
-            /* O segredo para não cortar o itálico: */
-            padding-right: 0.6em; /* Espaço extra generoso na direita */
-            margin-right: -0.6em; /* Puxa de volta para manter o centro */
-            padding-bottom: 0.2em; /* Espaço extra embaixo */
+            background-clip: text;
+            color: transparent;
+            padding-right: 0.6em; 
+            margin-right: -0.6em;
             display: inline-block;
-            line-height: 1.3; /* Aumenta a altura da linha */
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+            line-height: 1.2;
         }
-
-        @keyframes shine { to { background-position: 200% center; } }
     </style>
 </head>
 <body class="bg-[#0a192f] text-slate-300 min-h-screen flex items-center justify-center p-4 overflow-x-hidden relative">
@@ -94,9 +88,8 @@
                 
                 <div class="flex flex-col items-center uppercase font-black italic w-full">
                     <h2 class="text-5xl text-white tracking-tighter leading-none mb-1 drop-shadow-md">30 ANOS</h2>
-                    <!-- Div de segurança para o nome -->
                     <div class="w-full flex justify-center overflow-visible py-2"> 
-                        <h2 class="text-8xl gradient-fill tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+                        <h2 class="text-8xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tighter gradient-text">
                             LAIO
                         </h2>
                     </div>
@@ -174,40 +167,45 @@
 
         const getCalendarUrl = () => {
             const titulo = encodeURIComponent("30 Anos do Laio 🎂");
+            const detalhes = encodeURIComponent("Procedimento padrão: Comemoração e Alegria! #BBMP");
             const local = encodeURIComponent(endereco);
-            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=20251228T160000Z/20251229T020000Z&location=${local}`;
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=20251228T160000Z/20251229T020000Z&details=${detalhes}&location=${local}`;
         };
 
-        document.getElementById('btn-confirm').onclick = async function() {
+        document.getElementById('btn-confirm').onclick = function() {
             const nome = document.getElementById('guest-name').value.trim();
             if (!nome) {
-                alert("Preciso do seu nome para lista de presença da portaria. Por favor, preencha o campo!");
+                alert("Preciso do seu nome completo para lista de convidados da portaria. Por favor, preencha o campo.");
                 return;
             }
 
-            this.innerHTML = "SALVANDO NOME...";
+            const originalText = this.innerHTML;
+            this.innerHTML = "PROCESSANDO...";
             this.disabled = true;
 
-            try {
-                // 1. Grava na Planilha
-                await fetch(urlPlanilha, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nome: nome, data: new Date().toLocaleString("pt-BR") }),
-                });
+            // 1. Tenta abrir a Agenda (Para garantir o popup antes do fetch)
+            const calWindow = window.open(getCalendarUrl(), '_blank');
 
-                // 2. Avisa sucesso e prepara redirecionamento
-                alert("✅ Nome salvo na lista de convidados!\n\nAgora você será redirecionado para o WhatsApp para confirmar com o Laio.");
+            // 2. Grava na Planilha (em background)
+            fetch(urlPlanilha, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nome: nome, data: new Date().toLocaleString("pt-BR") }),
+                keepalive: true // Tenta manter o request vivo mesmo se mudar a página
+            }).catch(e => console.log("Erro silencioso ao salvar planilha", e));
 
-                // 3. Redireciona a página atual para o WhatsApp (Sem abrir nova aba)
-                const textoMsg = encodeURIComponent(`Fala, Laio ! Confirmado para os 3.0 no dia 28/12. Te vejo em breve 😉`);
+            // 3. Prepara mensagem do WhatsApp
+            const textoMsg = encodeURIComponent(`Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve 😉\n\n(Nome na lista: ${nome})`);
+            
+            // 4. Redireciona para o WhatsApp após 1.5 segundos
+            setTimeout(() => {
                 window.location.href = `https://wa.me/${seuNumero}?text=${textoMsg}`;
-
-            } catch (err) {
-                alert("Houve um pequeno erro técnico ao salvar. Tente novamente.");
-                this.innerHTML = "CONFIRMAR PRESENÇA";
-                this.disabled = false;
-            }
+                // Reseta botão caso o usuário volte
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }, 2000);
+            }, 1500);
         };
 
         document.getElementById('btn-calendar').onclick = () => window.open(getCalendarUrl(), '_blank');
