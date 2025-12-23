@@ -218,7 +218,7 @@
 
         const getCalendarUrl = () => {
             // \uD83C\uDF82 = Bolo
-            const titulo = encodeURIComponent("30 Anos do Laio \uD83C\uDF82");
+            const titulo = encodeURIComponent("30 Anos de Laio \uD83C\uDF82");
             const details = encodeURIComponent("Procedimento padrão: Comemoração e Alegria! #BBMP");
             const local = encodeURIComponent(endereco);
             return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=20251228T160000Z/20251229T020000Z&details=${details}&location=${local}`;
@@ -312,10 +312,10 @@
                 const nomeExiste = currentList.some(entry => entry.nome && entry.nome.toLowerCase() === nomeFormatado.toLowerCase());
 
                 // \uD83D\uDE09 = Piscadinha
-                let finalMessage = `Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve \uD83D\uDE09\n\n(Nome na lista: ${nomeFormatado})`;
+                let finalMessage = `Fala, Laio ! \n\nPresença confirmada na sua festa de aniversário. \n\nTe vejo em breve \uD83D\uDE09\n\n`;
                 
                 if (aiMessage) {
-                    finalMessage += `\n\n--- Msg Especial ---\n${aiMessage}`;
+                    finalMessage += `\n\n--- Mensagem Especial ---\n${aiMessage}`;
                 }
 
                 if (nomeExiste) {
